@@ -25,5 +25,111 @@
 	        		<li><a href="https://github.com/Thusal06">github.com/Thusal06</a></li>
 				</ul>
 			</footer>
+		<script>
+			class Router {
+  private active:any;
+  private routes:any;
+  private history:History;
+  private subscribers:((parameters, component) => void)[]
+
+  constructor() {
+    this.active = {
+      parameters: null,
+      component: null
+    };
+
+    this.routes = { };
+
+    this.subscribers = [ ];
+
+    this.history = createBrowserHistory();
+  }
+
+  initialize() {
+    // Initial Route
+    let { parameters, component } = this.find(window.location.pathname);
+    
+    if (parameters && component) {
+      this.history.push({ pathname: window.location.pathname });
+    } else {
+      this.route('/');
+    }
+  }
+
+  route(uri) {
+    let { parameters, component } = this.find(uri);
+
+    console.log(`route(): [uri: ${uri}] [parameters: ${JSON.stringify(parameters)}] [component: ${component}]`);
+
+    if (parameters && component) {
+      this.active.parameters = parameters;
+      this.active.component  = component;
+
+      this.history.push({ pathname: uri });
+      this.notify();
+    }
+  }
+
+  subscribe(listener:(parameters, component) => void) {
+    this.subscribers.push(listener);
+  }
+
+  register(pattern, component) {
+    console.log(`register: [pattern: ${pattern}]`);
+    this.routes[pattern] = component;
+    console.log(`routes: ${JSON.stringify(this.routes)}`);
+  }
+
+  get Component() {
+    return this.active.component;
+  }
+
+  get Parameters() {
+    return this.active.parameters;
+  }
+
+  private notify = () => {
+    this.subscribers.forEach( fn => {
+      fn(this.active.parameters, this.active.component);
+    })
+  }
+
+  private match = (pattern, uri) => {
+    let keys = [ ];
+    let re = PathToRegexp(pattern, keys);
+    let matches= re.exec(uri);
+  
+    if (!matches) {
+      return null;
+    }
+  
+    return matches.slice(1).reduce( (map, value, index) => {
+      map[ keys[index].name ] = value;
+      return map;
+    }, {});
+  }
+
+  private find = (uri) => {
+    for (var pattern in this.routes) {
+
+      console.log(`find: [testing: ${pattern}] [uri: ${uri}]`);
+
+      let parameters = this.match(pattern, uri);
+  
+      if (parameters) {
+        return {
+          parameters,
+          component: this.routes[pattern]
+        }
+      }
+    }
+
+    return {
+      parameters: null,
+      component:  null
+    }
+  }
+}
+			</script>
 		</body>
 	</html>
